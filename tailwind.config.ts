@@ -4,6 +4,7 @@ const config: Config = {
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/hooks/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
@@ -11,6 +12,9 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+      },
+      boxShadow: {
+        "inner-border": "inset 0 0 0 1px",
       },
     },
   },

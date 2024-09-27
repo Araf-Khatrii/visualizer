@@ -1,40 +1,75 @@
-import { useCallback, useEffect, useState } from "react";
+// @refresh reset
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-type AboutBoxType<T> = { size: string; states: Record<number, T> };
+export type BoxState =
+  | ""
+  | "START"
+  | "END"
+  | "WALL"
+  | "VISITED"
+  | "CACHE_VISITED"
+  | "NOT_VISITED"
+  | "CHOOSEN";
 
-type UseGridType<T = "WALL" | "VISITED" | "NOT_VISITED" | "CHOOSEN"> = {
+type AboutBoxType<T = BoxState> = {
+  colors: Record<BoxState, string>;
+};
+
+type UseGridType<T = BoxState> = {
   rows: number;
-  columns: number;
   aboutBox: AboutBoxType<T>;
 };
 
-const UseGrid = <T,>(
-  { rows, columns, aboutBox }: UseGridType<T>,
+function UseGrid<T extends BoxState>(
+  { rows, aboutBox }: UseGridType<T>,
+  memoCb: (map: Map<string, T>) => Map<string, T>,
   animationTime: number
-) => {
+) {
+  const columns = Math.floor(800 / 24);
   const [grid, setGrid] = useState<number[][]>([]);
   const [selectedRowCol, setSelectedRowCol] = useState<Map<string, T>>(
     new Map()
   );
+  const selectedMemo = useMemo(() => {
+    const newMap = new Map();
+    return memoCb(newMap);
+  }, []);
+  const [selectedAction, setSelectedAction] = useState<"WALL" | null>(null);
+  const [fromBox, setFromBox] = useState<{ active: boolean; place: string }>({
+    active: false,
+    place: "0-0",
+  });
+  const [toBox, setToBox] = useState<string>(`${rows - 1}-${columns - 1}`);
 
-  const { size } = aboutBox;
+  const { colors } = aboutBox;
 
   useEffect(() => {
     const initialGrid = Array.from({ length: rows }, () =>
       Array.from({ length: columns }, () => 0)
     );
     setGrid(initialGrid);
+    // setSelectedRowCol(() => {
+    //   const newMap = new Map();
+    //   return newMap;
+    // });
   }, []);
 
-  const updateBoxHandler = (
-    state: T,
-    selectedRow: number,
-    selectedColumn: number
-  ) => {
+  useEffect(() => {
+    // const fromBox = document.querySelector(".grid-box.from-box");
+    // const toBox = document.querySelector(".grid-box.to-box");
+    // window.addEventListener("mousemove", (e) => {
+    //   if (!e.target) return;
+    //   const gridEl = e.target as HTMLElement;
+    //   if (gridEl.closest(".grid-box")) {
+    //     console.log(gridEl.dataset);
+    //   }
+    // });
+  }, [grid]);
+
+  const updateBoxHandler = (newMap: Map<string, T>) => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        const selectedBox = `${selectedRow}-${selectedColumn}`;
-        setSelectedRowCol((prevMap) => prevMap.set(selectedBox, state));
+        setSelectedRowCol(newMap);
         resolve(null);
       }, animationTime);
     });
@@ -42,21 +77,46 @@ const UseGrid = <T,>(
 
   const renderGrid = useCallback(() => {
     return grid.map((row, i) => (
-      <div key={i} className="flex">
-        {row.map((_, j) => (
-          <div
-            key={j}
-            className={`w-[${size}px] h-[${size}px] border border-gray-300`}
-          ></div>
-        ))}
+      <div key={i} className="flex cursor-pointer">
+        {row.map((_, j) => {
+          const currentBox = `${i}-${j}`;
+          const selectedBoxState: BoxState =
+            selectedRowCol.get(currentBox) ?? "";
+          const selectedColor = colors[selectedBoxState];
+          const isFromAndToBox =
+            currentBox == fromBox.place
+              ? "from-box bg-green-500"
+              : currentBox == toBox
+              ? "to-box bg-yellow-500"
+              : "";
+
+          return (
+            <div
+              onClick={() =>
+                currentBox == fromBox.place &&
+                setFromBox({ active: true, place: currentBox })
+              }
+              data-row-idx={i}
+              data-col-idx={j}
+              key={`${i}-${j}`}
+              className={`${isFromAndToBox} grid-box w-6 h-6 border ${
+                selectedBoxState
+                  ? selectedColor
+                  : "shadow-inner-border shadow-black"
+              } ${[fromBox, toBox].includes(currentBox) ? "cursor-move" : ""}`}
+            ></div>
+          );
+        })}
       </div>
     ));
-  }, [selectedRowCol]);
+  }, [selectedRowCol, grid]);
 
   return {
+    grid,
+    selectedMemo,
     renderGrid,
     updateBoxHandler,
   };
-};
+}
 
 export default UseGrid;
