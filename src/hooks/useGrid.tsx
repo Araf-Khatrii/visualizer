@@ -10,6 +10,8 @@ export type BoxState =
   | "CACHE_VISITED"
   | "NOT_VISITED"
   | "CHOOSEN";
+export type MapValue<T = BoxState> = { state: T; value?: number };
+export type MapType<T = BoxState> = Map<string, MapValue>;
 
 type AboutBoxType<T = BoxState> = {
   colors: Record<BoxState, string>;
@@ -22,19 +24,18 @@ type UseGridType<T = BoxState> = {
 
 function UseGrid<T extends BoxState>(
   { rows, aboutBox }: UseGridType<T>,
-  memoCb: (map: Map<string, T>) => Map<string, T>,
+  memoCb: (map: MapType, grid: number[][]) => MapType,
   animationTime: number
 ) {
   const columns = Math.floor(800 / 24);
   const [grid, setGrid] = useState<number[][]>([]);
-  const [selectedRowCol, setSelectedRowCol] = useState<Map<string, T>>(
-    new Map()
-  );
-  const selectedMemo = useMemo(() => {
+  const [selectedRowCol, setSelectedRowCol] = useState<MapType>(new Map());
+  const selectedMemo: MapType = useMemo(() => {
     const newMap = new Map();
-    return memoCb(newMap);
-  }, []);
-  const [selectedAction, setSelectedAction] = useState<"WALL" | null>(null);
+    const updatedMap = memoCb(newMap, grid);
+    setSelectedRowCol(updatedMap);
+    return newMap;
+  }, [grid]);
   const [fromBox, setFromBox] = useState<{ active: boolean; place: string }>({
     active: false,
     place: "0-0",
@@ -66,7 +67,7 @@ function UseGrid<T extends BoxState>(
     // });
   }, [grid]);
 
-  const updateBoxHandler = (newMap: Map<string, T>) => {
+  const updateBoxHandler = (newMap: MapType) => {
     return new Promise((resolve) => {
       setTimeout(() => {
         setSelectedRowCol(newMap);
@@ -80,15 +81,12 @@ function UseGrid<T extends BoxState>(
       <div key={i} className="flex cursor-pointer">
         {row.map((_, j) => {
           const currentBox = `${i}-${j}`;
-          const selectedBoxState: BoxState =
-            selectedRowCol.get(currentBox) ?? "";
-          const selectedColor = colors[selectedBoxState];
+          const selectedBoxState = selectedRowCol.get(currentBox) ?? {
+            state: "",
+          };
+          const selectedColor = colors[selectedBoxState?.state];
           const isFromAndToBox =
-            currentBox == fromBox.place
-              ? "from-box bg-green-500"
-              : currentBox == toBox
-              ? "to-box bg-yellow-500"
-              : "";
+            currentBox == fromBox.place ? "from-box bg-green-500" : "";
 
           return (
             <div
@@ -100,7 +98,7 @@ function UseGrid<T extends BoxState>(
               data-col-idx={j}
               key={`${i}-${j}`}
               className={`${isFromAndToBox} grid-box w-6 h-6 border ${
-                selectedBoxState
+                selectedBoxState?.state
                   ? selectedColor
                   : "shadow-inner-border shadow-black"
               } ${[fromBox, toBox].includes(currentBox) ? "cursor-move" : ""}`}

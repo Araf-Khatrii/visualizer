@@ -18,22 +18,21 @@ const FindPathTo: FC = () => {
         },
       },
     },
-    (map) => {
+    (map, grid) => {
       const rows = grid.length;
       const columns = grid?.[0]?.length;
-      map.set("0-0", "START");
-      map.set(`${rows - 1}-${columns - 1}`, "END");
+      map.set("0-0", { state: "START" });
+      map.set(`${rows - 1}-${columns - 1}`, { state: "END" });
       for (let row = 0; row < rows - 6; row++) {
-        map.set(`${row - 3}-16`, "WALL");
-        map.set(`${rows - row - 5}-10`, "WALL");
-        map.set(`${row}-6`, "WALL");
+        map.set(`${row - 3}-16`, { state: "WALL" });
+        map.set(`${rows - row - 5}-10`, { state: "WALL" });
+        map.set(`${row}-6`, { state: "WALL" });
       }
 
       for (let col = 10; col < columns; col++) {
-        map.set(`10-${col}`, "WALL");
-        map.set(`15-${col}`, "WALL");
+        map.set(`10-${col}`, { state: "WALL" });
+        map.set(`15-${col}`, { state: "WALL" });
       }
-      updateBoxHandler(map);
       return map;
     },
     0
@@ -45,18 +44,19 @@ const FindPathTo: FC = () => {
     count: number
   ): Promise<boolean> => {
     const placeExists = selectedMemo.get(`${row}-${col}`);
-    if (placeExists === "END") return true;
+    if (placeExists?.state === "END") return true;
 
     if (
       row < 0 ||
       row >= grid.length ||
       col < 0 ||
       col >= grid[0].length ||
-      placeExists === "VISITED" ||
-      placeExists === "WALL"
+      placeExists?.state === "VISITED" ||
+      placeExists?.state === "WALL"
     )
       return false;
-    if (placeExists !== "START") selectedMemo.set(`${row}-${col}`, "VISITED");
+    if (placeExists?.state !== "START")
+      selectedMemo.set(`${row}-${col}`, { state: "VISITED" });
     await updateBoxHandler(new Map(selectedMemo));
     return (
       (await findPath(row - 1, col, count + 1)) ||
